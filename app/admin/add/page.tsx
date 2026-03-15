@@ -117,7 +117,6 @@ export default function AddMealPage() {
               type="file" 
               name="image_file" 
               accept="image/*" 
-              capture="environment"
               onChange={handleFileChange}
               style={{ 
                 position: 'absolute',
