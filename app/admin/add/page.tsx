@@ -13,6 +13,7 @@ export default function AddMealPage() {
   const [spicy, setSpicy] = useState(0);
   const [nameEn, setNameEn] = useState("");
   const [nameCn, setNameCn] = useState("");
+  const [description, setDescription] = useState("");
   const [isTranslating, setIsTranslating] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [labels, setLabels] = useState<string[]>([]);
@@ -47,7 +48,7 @@ export default function AddMealPage() {
     }}>
       <form action={async (formData) => {
         setIsSaving(true);
-        const toastId = toast.loading("Saving to Vault...");
+        const toastId = toast.loading("Saving meal...");
         try {
           await saveMeal(formData);
           toast.success("Added!", { id: toastId });
@@ -76,7 +77,7 @@ export default function AddMealPage() {
           zIndex: 100
         }}>
           <Link href="/" style={{ color: '#666', textDecoration: 'none' }}><ChevronLeft size={28} /></Link>
-          <h1 style={{ fontSize: '18px', fontWeight: '700', margin: 0 }}>Add to Vault</h1>
+          <h1 style={{ fontSize: '18px', fontWeight: '700', margin: 0 }}>Add meal</h1>
           <button type="submit" disabled={isSaving} style={{ 
             backgroundColor: '#f97316', color: '#fff', border: 'none', 
             padding: '8px 20px', borderRadius: '20px', fontWeight: '700', fontSize: '14px'
@@ -149,7 +150,145 @@ export default function AddMealPage() {
                 style={{ width: '100%', backgroundColor: '#121212', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '16px', padding: '16px', color: '#888', fontSize: '18px', fontWeight: '700', boxSizing: 'border-box' }} 
               />
             </div>
-            {/* ... Rest of your form (Spicy, Labels, etc.) ... */}
+            {/* Description */}
+            <div>
+              <label style={{ fontSize: '10px', fontWeight: '900', color: '#444', display: 'block', marginBottom: '8px' }}>DESCRIPTION</label>
+              <textarea
+                name="description"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                rows={3}
+                placeholder="Notes, how spicy, where it's from..."
+                style={{
+                  width: '100%',
+                  backgroundColor: '#121212',
+                  border: '1px solid rgba(255,255,255,0.05)',
+                  borderRadius: '16px',
+                  padding: '14px',
+                  color: '#ccc',
+                  fontSize: '14px',
+                  boxSizing: 'border-box',
+                  resize: 'none',
+                }}
+              />
+            </div>
+
+            {/* Labels */}
+            <div>
+              <label style={{ fontSize: '10px', fontWeight: '900', color: '#444', display: 'block', marginBottom: '8px' }}>LABELS</label>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '12px' }}>
+                {labels.map((l) => (
+                  <span
+                    key={l}
+                    style={{
+                      backgroundColor: 'rgba(255,255,255,0.1)',
+                      padding: '8px 14px',
+                      borderRadius: '12px',
+                      fontSize: '13px',
+                      fontWeight: '600',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      border: '1px solid rgba(255,255,255,0.05)',
+                    }}
+                  >
+                    {l}
+                    <button
+                      type="button"
+                      onClick={() => setLabels(labels.filter((x) => x !== l))}
+                      style={{
+                        background: 'none',
+                        border: 'none',
+                        padding: 0,
+                        margin: 0,
+                        color: '#f97316',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      ✕
+                    </button>
+                  </span>
+                ))}
+              </div>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <input
+                  value={currentLabelInput}
+                  onChange={(e) => setCurrentLabelInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      addLabel();
+                    }
+                  }}
+                  placeholder="Add label (e.g. Beef)..."
+                  style={{
+                    flex: 1,
+                    backgroundColor: '#121212',
+                    border: '1px solid rgba(255,255,255,0.05)',
+                    borderRadius: '12px',
+                    padding: '12px',
+                    color: '#fff',
+                  }}
+                />
+                <button
+                  type="button"
+                  onClick={addLabel}
+                  style={{
+                    backgroundColor: '#222',
+                    border: 'none',
+                    padding: '12px',
+                    borderRadius: '12px',
+                    color: '#fff',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                >
+                  <span style={{ fontSize: '18px', lineHeight: 1 }}>+</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Spicy Level */}
+            <div>
+              <label
+                style={{
+                  fontSize: '10px',
+                  fontWeight: '900',
+                  color: '#444',
+                  display: 'block',
+                  marginBottom: '12px',
+                  textAlign: 'center',
+                }}
+              >
+                SPICY LEVEL
+              </label>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '10px' }}>
+                {[1, 2, 3, 4, 5].map((num) => (
+                  <button
+                    key={num}
+                    type="button"
+                    onClick={() => setSpicy(num)}
+                    style={{
+                      aspectRatio: '1/1',
+                      borderRadius: '16px',
+                      border: '1px solid',
+                      borderColor: spicy >= num ? '#f97316' : 'rgba(255,255,255,0.05)',
+                      backgroundColor: spicy >= num ? 'rgba(249,115,22,0.1)' : '#121212',
+                      color: spicy >= num ? '#f97316' : '#222',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    <Flame size={20} fill={spicy >= num ? 'currentColor' : 'none'} />
+                    <span style={{ fontSize: '10px', fontWeight: '900', marginTop: '4px' }}>{num}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
           </div>
         </div>
       </form>

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from 'react';
-import { ChevronLeft, Sparkles, Flame, Trash2, Loader2, Plus, X } from 'lucide-react';
+import { ChevronLeft, Sparkles, Flame, Trash2, Loader2, Plus, X, Camera } from 'lucide-react';
 import Link from 'next/link';
 import { updateMeal, deleteMeal, translateText } from '../../add/actions';
 import { toast } from 'sonner';
@@ -10,10 +10,12 @@ export default function EditMealForm({ meal }: { meal: any }) {
   const [nameEn, setNameEn] = useState(meal.name_en || "");
   const [nameCn, setNameCn] = useState(meal.name_cn || "");
   const [spicy, setSpicy] = useState(meal.spicy_level || 0);
+  const [description, setDescription] = useState(meal.description || "");
   const [isTranslating, setIsTranslating] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [labels, setLabels] = useState<string[]>(meal.label ? meal.label.split(',').filter(Boolean) : []);
   const [currentLabelInput, setCurrentLabelInput] = useState("");
+  const [previewUrl, setPreviewUrl] = useState<string | null>(meal.image_url || null);
 
   const appFont = '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif';
 
@@ -37,6 +39,7 @@ export default function EditMealForm({ meal }: { meal: any }) {
         // --- CRITICAL FIX: Manually set labels and spicy in formData ---
         formData.set('label', labels.join(','));
         formData.set('spicy_level', spicy.toString());
+        formData.set('description', description);
         
         setIsSaving(true);
         const toastId = toast.loading("Updating...");
@@ -84,17 +87,72 @@ export default function EditMealForm({ meal }: { meal: any }) {
 
         <div style={{ padding: '24px' }}>
           
-          {/* Taller Centered Image */}
+          {/* Editable Image with file input overlay */}
           <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '32px' }}>
-            <div style={{ 
-              width: '100%', maxWidth: '800px', height: '400px', 
-              backgroundColor: '#121212', borderRadius: '32px', overflow: 'hidden',
-              border: '1px solid rgba(255,255,255,0.1)', boxShadow: '0 12px 40px rgba(0,0,0,0.6)' 
-            }}>
-              <img 
-                src={meal.image_url || 'https://placehold.co/800x600'} 
-                style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
-                alt="" 
+            <div
+              style={{
+                position: 'relative',
+                width: '100%',
+                maxWidth: '800px',
+                height: '400px',
+                backgroundColor: '#121212',
+                borderRadius: '32px',
+                overflow: 'hidden',
+                border: '1px solid rgba(255,255,255,0.1)',
+                boxShadow: '0 12px 40px rgba(0,0,0,0.6)',
+              }}
+            >
+              <img
+                src={previewUrl || 'https://placehold.co/800x600'}
+                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                alt=""
+              />
+              <div
+                style={{
+                  position: 'absolute',
+                  inset: 0,
+                  background: 'linear-gradient(to top, rgba(0,0,0,0.6), transparent)',
+                  display: 'flex',
+                  alignItems: 'flex-end',
+                  justifyContent: 'flex-end',
+                  padding: '16px',
+                  pointerEvents: 'none',
+                }}
+              >
+                <div
+                  style={{
+                    backgroundColor: 'rgba(0,0,0,0.7)',
+                    borderRadius: '999px',
+                    padding: '8px 14px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    fontSize: '12px',
+                    fontWeight: 600,
+                    color: '#fff',
+                  }}
+                >
+                  <Camera size={16} />
+                  <span>Change photo</span>
+                </div>
+              </div>
+              <input
+                type="file"
+                name="image_file"
+                accept="image/*"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) {
+                    const url = URL.createObjectURL(file);
+                    setPreviewUrl(url);
+                  }
+                }}
+                style={{
+                  position: 'absolute',
+                  inset: 0,
+                  opacity: 0,
+                  cursor: 'pointer',
+                }}
               />
             </div>
           </div>
@@ -167,6 +225,27 @@ export default function EditMealForm({ meal }: { meal: any }) {
             </div>
 
             {/* Spicy Level */}
+            {/* Description */}
+            <div>
+              <label style={{ fontSize: '10px', fontWeight: '900', color: '#444', display: 'block', marginBottom: '8px' }}>DESCRIPTION</label>
+              <textarea
+                name="description"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                rows={3}
+                style={{
+                  width: '100%',
+                  backgroundColor: '#121212',
+                  border: '1px solid rgba(255,255,255,0.05)',
+                  borderRadius: '16px',
+                  padding: '14px',
+                  color: '#ccc',
+                  fontSize: '14px',
+                  boxSizing: 'border-box',
+                  resize: 'none',
+                }}
+              />
+            </div>
             <div>
               <label style={{ fontSize: '10px', fontWeight: '900', color: '#444', display: 'block', marginBottom: '12px', textAlign: 'center' }}>SPICY LEVEL</label>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '10px' }}>

@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client'; 
 import Link from 'next/link';
-import { Plus, UtensilsCrossed, Flame, ChevronRight, Search, X } from 'lucide-react';
+import { Plus, UtensilsCrossed, Flame, Search, X } from 'lucide-react';
 import BottomNav from '@/components/BottomNav';
 
 export default function Home() {
@@ -24,7 +24,6 @@ export default function Home() {
     fetchData();
   }, []);
 
-  // Process Labels
   const allLabels = meals.reduce((acc: string[], meal: any) => {
     const labelData = meal.label as string | null;
     if (labelData) {
@@ -36,7 +35,6 @@ export default function Home() {
 
   const uniqueLabels = ["All", ...Array.from(new Set(allLabels)).sort()];
 
-  // Filter & Search Logic Combined
   const filteredMeals = meals.filter(meal => {
     const matchesFilter = activeFilter === "All" || 
       (meal.label as string || "").split(',').map(l => l.trim()).includes(activeFilter);
@@ -57,7 +55,7 @@ export default function Home() {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#f97316' }}>
             <UtensilsCrossed size={18} />
-            <span style={{ fontSize: '10px', fontWeight: '900', letterSpacing: '0.2em' }}>VAULT</span>
+            <span style={{ fontSize: '10px', fontWeight: '900', letterSpacing: '0.2em' }}>MEALS</span>
           </div>
           <Link href="/admin/add" style={{ backgroundColor: '#f97316', color: '#fff', width: '40px', height: '40px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', textDecoration: 'none' }}>
             <Plus size={22} />
@@ -119,25 +117,69 @@ export default function Home() {
         })}
       </div>
 
-      {/* Results */}
-      <div style={{ padding: '0 20px 140px 20px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+      {/* Grid Results */}
+      <div style={{ 
+        padding: '0 24px 140px 24px', 
+        display: 'grid', 
+        gridTemplateColumns: 'repeat(2, 1fr)', 
+        gap: '16px' 
+      }}>
         {filteredMeals.map((meal) => (
-          <Link href={`/admin/edit/${meal.id}`} key={meal.id} style={{ textDecoration: 'none' }}>
-            <div style={{ display: 'flex', gap: '16px', padding: '12px', backgroundColor: '#121212', borderRadius: '28px', border: '1px solid rgba(255,255,255,0.08)' }}>
-              <div style={{ width: '85px', height: '85px', backgroundColor: '#1A1A1A', borderRadius: '20px', overflow: 'hidden', flexShrink: 0 }}>
-                <img src={meal.image_url || 'https://placehold.co/200'} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" />
+          <Link href={`/meal/${meal.id}`} key={meal.id} style={{ textDecoration: 'none' }}>
+            <div style={{ 
+              display: 'flex', 
+              flexDirection: 'column', 
+              backgroundColor: '#121212', 
+              borderRadius: '24px', 
+              border: '1px solid rgba(255,255,255,0.08)',
+              overflow: 'hidden',
+              height: '100%' 
+            }}>
+              {/* Image Container */}
+              <div style={{ width: '100%', aspectRatio: '1/1', backgroundColor: '#1A1A1A', overflow: 'hidden' }}>
+                <img 
+                  src={meal.image_url || 'https://placehold.co/400'} 
+                  style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
+                  alt={meal.name_en} 
+                />
               </div>
-              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', minWidth: 0 }}>
-                <h3 style={{ margin: '0', color: '#fff', fontSize: '17px', fontWeight: '700', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>{meal.name_en}</h3>
-                <p style={{ margin: '2px 0 8px 0', color: '#666', fontSize: '14px', fontWeight: '500' }}>{meal.name_cn}</p>
-                <div style={{ display: 'flex', gap: '2px' }}>
+              
+              {/* Content Container */}
+              <div style={{ padding: '12px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                <h3 style={{ 
+                  margin: '0', 
+                  color: '#fff', 
+                  fontSize: '15px', 
+                  fontWeight: '700', 
+                  display: '-webkit-box',
+                  WebkitLineClamp: 1,
+                  WebkitBoxOrient: 'vertical',
+                  overflow: 'hidden' 
+                }}>
+                  {meal.name_en}
+                </h3>
+                <p style={{ 
+                  margin: '0', 
+                  color: '#666', 
+                  fontSize: '12px', 
+                  fontWeight: '500',
+                  display: '-webkit-box',
+                  WebkitLineClamp: 1,
+                  WebkitBoxOrient: 'vertical',
+                  overflow: 'hidden' 
+                }}>
+                  {meal.name_cn}
+                </p>
+                <div style={{ display: 'flex', gap: '2px', marginTop: '4px' }}>
                   {[...Array(5)].map((_, i) => (
-                    <Flame key={i} size={14} fill={i < (meal.spicy_level || 0) ? '#f97316' : 'none'} color={i < (meal.spicy_level || 0) ? '#f97316' : '#222'} />
+                    <Flame 
+                      key={i} 
+                      size={12} 
+                      fill={i < (meal.spicy_level || 0) ? '#f97316' : 'none'} 
+                      color={i < (meal.spicy_level || 0) ? '#f97316' : '#222'} 
+                    />
                   ))}
                 </div>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', color: '#333', paddingRight: '4px' }}>
-                <ChevronRight size={20} />
               </div>
             </div>
           </Link>
