@@ -1,7 +1,7 @@
 "use client";
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, PlusCircle } from 'lucide-react';
+import { Home, PlusCircle, CalendarDays } from 'lucide-react'; // Added CalendarDays
 
 export default function BottomNav() {
   const pathname = usePathname();
@@ -9,6 +9,7 @@ export default function BottomNav() {
 
   const navItems = [
     { icon: Home, label: 'Vault', path: '/' },
+    { icon: CalendarDays, label: 'Planner', path: '/weekly' }, // New Item
     { icon: PlusCircle, label: 'Add', path: '/admin/add' },
   ];
 
@@ -28,9 +29,9 @@ export default function BottomNav() {
     }}>
       <div style={{ 
         display: 'flex', 
-        justifyContent: 'space-around', // Spaced out for 2 items
+        justifyContent: 'space-between', // Changed to between for 3 items
         alignItems: 'center', 
-        maxWidth: '400px', 
+        maxWidth: '500px', // Slightly wider for 3 items
         margin: '0 auto' 
       }}>
         {navItems.map((item) => {
@@ -43,8 +44,9 @@ export default function BottomNav() {
               alignItems: 'center', 
               gap: '6px', 
               color: isActive ? '#f97316' : '#444',
-              transition: 'color 0.2s ease',
-              padding: '0 20px'
+              transition: 'all 0.2s ease',
+              padding: '0 10px',
+              flex: 1 // Ensures even tapping areas
             }}>
               <item.icon size={26} strokeWidth={isActive ? 2.5 : 2} />
               <span style={{ 
