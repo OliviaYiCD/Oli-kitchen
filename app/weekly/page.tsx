@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Drawer } from 'vaul';
 import BottomNav from '@/components/BottomNav';
-import { Plus, Search, CalendarDays, Trash2 } from 'lucide-react';
+import { Plus, Search, CalendarDays, Trash2, User, Globe } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 
 export default function WeeklyPlan() {
@@ -11,9 +11,11 @@ export default function WeeklyPlan() {
   const [selectedDay, setSelectedDay] = useState<{key: string, cn: string} | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [activeLabel, setActiveLabel] = useState("All"); 
+  const [drawerFilter, setDrawerFilter] = useState<"all" | "mine">("all"); // New Filter State
   const [meals, setMeals] = useState<any[]>([]); 
   const [plan, setPlan] = useState<any>({});    
   const [loading, setLoading] = useState(true);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
   const supabase = createClient();
   const appFont = '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif';
@@ -25,13 +27,16 @@ export default function WeeklyPlan() {
     { key: "Sun", cn: "周日" }
   ];
 
-  useEffect(() => {
-    fetchData();
-  }, []);
-
-  async function fetchData() {
+  const fetchData = useCallback(async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) setCurrentUserId(user.id);
+    
     const { data: mealsData } = await supabase.from('meals').select('*').order('name_en');
-    const { data: planData } = await supabase.from('weekly_plan').select('*, meals(*)');
+    
+    const { data: planData } = await supabase
+      .from('weekly_plan')
+      .select('*, meals(*)')
+      .eq('user_id', user?.id);
     
     if (mealsData) setMeals(mealsData);
     
@@ -43,29 +48,28 @@ export default function WeeklyPlan() {
 
     setPlan(grouped);
     setLoading(false);
-  }
+  }, [supabase]);
 
-  const allLabels = meals.reduce((acc: string[], meal: any) => {
-    const labelData = meal.label as string | null;
-    if (labelData) {
-      const splitLabels = labelData.split(',').map((l: string) => l.trim()).filter(Boolean);
-      return [...acc, ...splitLabels];
-    }
-    return acc;
-  }, []);
-  const uniqueLabels = ["All", ...Array.from(new Set(allLabels)).sort()];
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
 
   const handleOpenDrawer = (day: {key: string, cn: string}) => {
     setSelectedDay(day);
     setActiveLabel("All");
+    setDrawerFilter("all"); // Reset to all when opening
     setIsOpen(true);
   };
 
   async function addMealToDay(mealId: string) {
     if (!selectedDay) return;
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
     const { error } = await supabase.from('weekly_plan').insert({ 
       day_of_week: selectedDay.key, 
-      meal_id: mealId 
+      meal_id: mealId,
+      user_id: user.id 
     });
     
     if (!error) {
@@ -80,13 +84,26 @@ export default function WeeklyPlan() {
     fetchData();
   }
 
+  // Updated filtering logic to include "My Meals"
   const filteredRecipes = meals.filter(m => {
     const matchesLabel = activeLabel === "All" || 
       (m.label as string || "").split(',').map(l => l.trim()).includes(activeLabel);
     const matchesSearch = m.name_en.toLowerCase().includes(searchQuery.toLowerCase()) || 
       (m.name_cn && m.name_cn.includes(searchQuery));
-    return matchesLabel && matchesSearch;
+    const matchesOwner = drawerFilter === "all" || m.created_by === currentUserId;
+    
+    return matchesLabel && matchesSearch && matchesOwner;
   });
+
+  const allLabels = meals.reduce((acc: string[], meal: any) => {
+    const labelData = meal.label as string | null;
+    if (labelData) {
+      const splitLabels = labelData.split(',').map((l: string) => l.trim()).filter(Boolean);
+      return [...acc, ...splitLabels];
+    }
+    return acc;
+  }, []);
+  const uniqueLabels = ["All", ...Array.from(new Set(allLabels)).sort()];
 
   if (loading) return <div style={{ backgroundColor: '#000', minHeight: '100vh' }} />;
 
@@ -123,10 +140,10 @@ export default function WeeklyPlan() {
                 <div style={{ marginTop: '12px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
                   {plan[day.key].map((item: any) => (
                     <div key={item.id} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '10px 14px', backgroundColor: '#1A1A1A', borderRadius: '18px' }}>
-                      <img src={item.meals.image_url} style={{ width: '32px', height: '32px', borderRadius: '8px', objectFit: 'cover' }} alt="" />
+                      <img src={item.meals?.image_url} style={{ width: '32px', height: '32px', borderRadius: '8px', objectFit: 'cover' }} alt="" />
                       <div style={{ flex: 1 }}>
-                        <div style={{ fontSize: '14px', fontWeight: '700', color: '#fff' }}>{item.meals.name_en}</div>
-                        <div style={{ fontSize: '11px', color: '#666', fontWeight: '500' }}>{item.meals.name_cn}</div>
+                        <div style={{ fontSize: '14px', fontWeight: '700', color: '#fff' }}>{item.meals?.name_en}</div>
+                        <div style={{ fontSize: '11px', color: '#666', fontWeight: '500' }}>{item.meals?.name_cn}</div>
                       </div>
                       <button onClick={() => removeFromPlan(item.id)} style={{ background: 'none', border: 'none', color: '#444', cursor: 'pointer' }}>
                         <Trash2 size={16} />
@@ -148,12 +165,32 @@ export default function WeeklyPlan() {
               <Drawer.Title style={{ fontSize: '22px', fontWeight: '800', marginBottom: '8px', textAlign: 'center', color: '#fff' }}>
                 Add to <span style={{ color: '#f97316' }}>{selectedDay?.cn}</span>
               </Drawer.Title>
+
+              {/* Toggle Filter: All vs My Meals */}
+              <div style={{ display: 'flex', justifyContent: 'center', gap: '8px', marginTop: '16px' }}>
+                <button 
+                  onClick={() => setDrawerFilter("all")}
+                  style={{ 
+                    display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 16px', borderRadius: '100px', border: 'none', fontSize: '12px', fontWeight: '700', cursor: 'pointer',
+                    backgroundColor: drawerFilter === "all" ? '#fff' : '#222',
+                    color: drawerFilter === "all" ? '#000' : '#888'
+                  }}
+                >
+                  <Globe size={14} /> All
+                </button>
+                <button 
+                  onClick={() => setDrawerFilter("mine")}
+                  style={{ 
+                    display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 16px', borderRadius: '100px', border: 'none', fontSize: '12px', fontWeight: '700', cursor: 'pointer',
+                    backgroundColor: drawerFilter === "mine" ? '#fff' : '#222',
+                    color: drawerFilter === "mine" ? '#000' : '#888'
+                  }}
+                >
+                  <User size={14} /> My Meals
+                </button>
+              </div>
               
-              <Drawer.Description style={{ textAlign: 'center', color: '#444', fontSize: '12px', marginBottom: '20px' }}>
-                Search or filter to find a dish.
-              </Drawer.Description>
-              
-              <div style={{ position: 'relative', marginBottom: '20px' }}>
+              <div style={{ position: 'relative', marginBottom: '20px', marginTop: '20px' }}>
                 <Search style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: '#555' }} size={18} />
                 <input 
                   style={{ width: '100%', backgroundColor: '#000', border: '1px solid #222', borderRadius: '16px', padding: '14px 14px 14px 44px', color: '#fff', fontSize: '16px', outline: 'none' }}
